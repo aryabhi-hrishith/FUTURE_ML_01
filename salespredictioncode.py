@@ -32,3 +32,77 @@ df = pd.DataFrame(data)
 df.to_csv("sales.csv", index=False)
 
 df.head(), "Dataset saved as sales.csv"
+
+import pandas as pd
+
+df = pd.read_csv("sales.csv")
+
+# Prophet requires these column names
+df['ds'] = pd.to_datetime(df['Date'])
+df['y'] = df['Sales']
+
+df = df[['ds', 'y']]
+
+df.head()
+
+from prophet import Prophet
+
+model = Prophet()
+model.fit(df)
+
+future = model.make_future_dataframe(periods=30)  # forecast next 30 days
+forecast = model.predict(future)
+
+model.plot(forecast)
+model.plot_components(forecast)
+
+#writefile app.py
+import streamlit as st
+import pandas as pd
+from prophet import Prophet
+import plotly.graph_objects as go
+
+st.title("📈 Sales Forecasting Dashboard")
+st.write("Powered by Prophet — Future Interns ML Task 1")
+
+# Upload CSV
+uploaded_file = st.file_uploader("Upload your sales.csv file", type=["csv"])
+
+if uploaded_file is not None:
+
+    df = pd.read_csv(uploaded_file)
+
+    # Preprocess
+    df['ds'] = pd.to_datetime(df['Date'])
+    df['y'] = df['Sales']
+    data = df[['ds', 'y']]
+
+    st.subheader("📊 Raw Data")
+    st.dataframe(data)
+
+    # Model
+    model = Prophet()
+    model.fit(data)
+
+    future = model.make_future_dataframe(periods=30)
+    forecast = model.predict(future)
+
+    st.subheader("📈 Sales Forecast (Next 30 Days)")
+
+    # Plot forecast using Plotly
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['ds'], y=data['y'], mode='lines', name='Historical Sales'))
+    fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast'))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("📉 Trend & Seasonality Components")
+    st.write("Use the Prophet built-in plots below:")
+
+    # Show Prophet components using matplotlib
+    from prophet.plot import plot_components
+    import matplotlib.pyplot as plt
+
+    fig2 = plot_components(model, forecast)
+    st.pyplot(fig2)
+
